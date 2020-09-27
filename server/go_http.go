@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"regexp"
 
@@ -16,18 +17,51 @@ type Route struct {
 
 // WiseSaying struct
 type WiseSaying struct {
-	Saying string `json:"saying"`
-	Name   string `json:"name"`
+	ID     string  `json:"id"`
+	Text   string  `json:"text"`
+	Person *Person `json:"person"`
 }
 
-// HomeHandler write gorilla
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
+// Person struct
+type Person struct {
+	Name string `json:"name"`
+}
+
+// Get all wise sayings
+func getWiseSayings(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Gorilla!\n"))
 }
 
-func main() {
-	r := mux.NewRouter()
-	r.HandleFunc("/", HomeHandler)
+// Get wise saying
+func getWiseSaying(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("wise saying"))
+}
 
-	http.ListenAndServe(":8000", r)
+// Create wise saying
+func createWiseSaying(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("create wise saying"))
+}
+
+// Update wise saying
+func updateWiseSaying(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("update wise saying"))
+}
+
+// Delete wise saying
+func deleteWiseSaying(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("delete wise saying"))
+}
+
+func main() {
+	// Init Router
+	r := mux.NewRouter()
+
+	// Route Handlers / Endpoints
+	r.HandleFunc("/api/wise-sayings", getWiseSayings).Methods("GET")
+	r.HandleFunc("/api/wise-sayings/{id}", getWiseSaying).Methods("GET")
+	r.HandleFunc("/api/wise-sayings", createWiseSaying).Methods("POST")
+	r.HandleFunc("/api/wise-sayings/{id}", updateWiseSaying).Methods("PUT")
+	r.HandleFunc("/api/wise-sayings/{id}", deleteWiseSaying).Methods("DELETE")
+
+	log.Fatal(http.ListenAndServe(":8000", r))
 }
