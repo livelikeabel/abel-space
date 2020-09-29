@@ -71,6 +71,18 @@ func updateWiseSaying(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Delete wise saying
+func deleteWiseSaying(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(r) // Get params
+
+	for i, v := range wiseSayings {
+		if v.ID == params["id"] {
+			wiseSayings = append(wiseSayings[:i], wiseSayings[i+1:]...)
+		}
+	}
+}
+
 // Main function
 func main() {
 	// Init router
@@ -85,7 +97,7 @@ func main() {
 	r.HandleFunc("/wise-sayings/{id}", getWiseSaying).Methods("GET")
 	r.HandleFunc("/wise-sayings", createWiseSaying).Methods("POST")
 	r.HandleFunc("/wise-sayings/{id}", updateWiseSaying).Methods("PUT")
-	// r.HandleFunc("/wise-sayings/{id}", deleteWiseSaying).Methods("DELETE")
+	r.HandleFunc("/wise-sayings/{id}", deleteWiseSaying).Methods("DELETE")
 
 	// Start server
 	log.Fatal(http.ListenAndServe(":8000", r))
