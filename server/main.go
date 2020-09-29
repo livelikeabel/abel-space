@@ -34,7 +34,7 @@ func getWiseSayings(w http.ResponseWriter, r *http.Request) {
 // Get single wise sayings
 func getWiseSaying(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	params := mux.Vars(r) // Gets params
+	params := mux.Vars(r) // Get params
 	// Loop through wise sayings and find one with the id from the params
 	for _, item := range wiseSayings {
 		if item.ID == params["id"] {
@@ -55,6 +55,22 @@ func createWiseSaying(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(wiseSaying)
 }
 
+// Update wise saying
+func updateWiseSaying(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(r) // Get params
+
+	for i, v := range wiseSayings {
+		if v.ID == params["id"] {
+			var wiseSaying WiseSaying
+			_ = json.NewDecoder(r.Body).Decode(&wiseSaying)
+			wiseSaying.ID = v.ID
+			copy(wiseSayings[i:], []WiseSaying{wiseSaying})
+			json.NewEncoder(w).Encode(wiseSaying)
+		}
+	}
+}
+
 // Main function
 func main() {
 	// Init router
@@ -68,7 +84,7 @@ func main() {
 	r.HandleFunc("/wise-sayings", getWiseSayings).Methods("GET")
 	r.HandleFunc("/wise-sayings/{id}", getWiseSaying).Methods("GET")
 	r.HandleFunc("/wise-sayings", createWiseSaying).Methods("POST")
-	// r.HandleFunc("/wise-sayings/{id}", updateWiseSaying).Methods("PUT")
+	r.HandleFunc("/wise-sayings/{id}", updateWiseSaying).Methods("PUT")
 	// r.HandleFunc("/wise-sayings/{id}", deleteWiseSaying).Methods("DELETE")
 
 	// Start server
