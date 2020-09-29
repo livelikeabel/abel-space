@@ -59,14 +59,14 @@ func createWiseSaying(w http.ResponseWriter, r *http.Request) {
 func updateWiseSaying(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r) // Get params
-
-	for i, v := range wiseSayings {
-		if v.ID == params["id"] {
+	for index, item := range wiseSayings {
+		if item.ID == params["id"] {
 			var wiseSaying WiseSaying
 			_ = json.NewDecoder(r.Body).Decode(&wiseSaying)
-			wiseSaying.ID = v.ID
-			copy(wiseSayings[i:], []WiseSaying{wiseSaying})
+			wiseSaying.ID = item.ID
+			copy(wiseSayings[index:], []WiseSaying{wiseSaying})
 			json.NewEncoder(w).Encode(wiseSaying)
+			return
 		}
 	}
 }
@@ -75,12 +75,13 @@ func updateWiseSaying(w http.ResponseWriter, r *http.Request) {
 func deleteWiseSaying(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r) // Get params
-
-	for i, v := range wiseSayings {
-		if v.ID == params["id"] {
-			wiseSayings = append(wiseSayings[:i], wiseSayings[i+1:]...)
+	for index, item := range wiseSayings {
+		if item.ID == params["id"] {
+			wiseSayings = append(wiseSayings[:index], wiseSayings[index+1:]...)
+			break
 		}
 	}
+	json.NewEncoder(w).Encode(wiseSayings)
 }
 
 // Main function
