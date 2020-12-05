@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -108,32 +107,13 @@ func dbQuery(db dbInfo, query string) (count int) {
 		log.Fatal(err)
 	}
 
-	conn.SetConnMaxLifetime(time.Minute)
-	conn.SetMaxOpenConns(10)
-	conn.SetMaxIdleConns(10)
+	// conn.SetConnMaxLifetime(time.Minute)
+	// conn.SetMaxOpenConns(10)
+	// conn.SetMaxIdleConns(10)
 
 	defer conn.Close()
-	err = conn.QueryRow(query).Scan(&count)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("count", count)
-	return count
-}
 
-// Main function
-func main() {
-	fmt.Println("Go MySQL tutorial")
-
-	db, err := sql.Open("mysql", "root:password@tcp(127.0.0.1:3306)/abelspace")
-
-	if err != nil {
-		panic(err.Error())
-	}
-
-	defer db.Close()
-
-	results, err := db.Query("SELECT name FROM users")
+	results, err := conn.Query(query)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -149,10 +129,16 @@ func main() {
 		fmt.Println(user.Name)
 	}
 
-	// // Declear Database
-	// var db = dbInfo{"root", "mypassword", "localhost:3306", "mysql", "test"}
-	// result := dbQuery(db, query)
-	// print(result)
+	return 0
+}
+
+// Main function
+func main() {
+	// Declear Database
+	var db = dbInfo{"root", "", "127.0.0.1:3306", "mysql", "abelspace"}
+	var query = "SELECT name FROM users"
+	result := dbQuery(db, query)
+	print(result)
 
 	// // Init router
 	// r := mux.NewRouter()
