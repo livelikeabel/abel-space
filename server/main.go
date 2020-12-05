@@ -1,14 +1,26 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 )
+
+type dbInfo struct {
+	user     string
+	pwd      string
+	url      string
+	engine   string
+	database string
+}
 
 // WiseSaying struct (Model)
 type WiseSaying struct {
@@ -19,6 +31,11 @@ type WiseSaying struct {
 
 // Person struct
 type Person struct {
+	Name string `json:"name"`
+}
+
+// User struct
+type User struct {
 	Name string `json:"name"`
 }
 
@@ -84,22 +101,73 @@ func deleteWiseSaying(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(wiseSayings)
 }
 
+func dbQuery(db dbInfo, query string) (count int) {
+	dataSource := db.user + ":" + db.pwd + "@tcp(" + db.url + ")/" + db.database
+	conn, err := sql.Open(db.engine, dataSource)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	conn.SetConnMaxLifetime(time.Minute)
+	conn.SetMaxOpenConns(10)
+	conn.SetMaxIdleConns(10)
+
+	defer conn.Close()
+	err = conn.QueryRow(query).Scan(&count)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("count", count)
+	return count
+}
+
 // Main function
 func main() {
-	// Init router
-	r := mux.NewRouter()
+	fmt.Println("Go MySQL tutorial")
 
-	// Hardcoded data - @todo: add database
-	wiseSayings = append(wiseSayings, WiseSaying{ID: "1", Text: "Text One", Person: &Person{Name: "John"}})
-	wiseSayings = append(wiseSayings, WiseSaying{ID: "2", Text: "Text Two", Person: &Person{Name: "Steve"}})
+	db, err := sql.Open("mysql", "root:password@tcp(127.0.0.1:3306)/abelspace")
 
-	// Route handles & endpoints
-	r.HandleFunc("/wise-sayings", getWiseSayings).Methods("GET")
-	r.HandleFunc("/wise-sayings/{id}", getWiseSaying).Methods("GET")
-	r.HandleFunc("/wise-sayings", createWiseSaying).Methods("POST")
-	r.HandleFunc("/wise-sayings/{id}", updateWiseSaying).Methods("PUT")
-	r.HandleFunc("/wise-sayings/{id}", deleteWiseSaying).Methods("DELETE")
+	if err != nil {
+		panic(err.Error())
+	}
 
-	// Start server
-	log.Fatal(http.ListenAndServe(":8000", r))
+	defer db.Close()
+
+	results, err := db.Query("SELECT name FROM users")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	for results.Next() {
+		var user User
+
+		err = results.Scan(&user.Name)
+		if err != nil {
+			panic(err.Error())
+		}
+
+		fmt.Println(user.Name)
+	}
+
+	// // Declear Database
+	// var db = dbInfo{"root", "mypassword", "localhost:3306", "mysql", "test"}
+	// result := dbQuery(db, query)
+	// print(result)
+
+	// // Init router
+	// r := mux.NewRouter()
+
+	// // Hardcoded data - @todo: add database
+	// wiseSayings = append(wiseSayings, WiseSaying{ID: "1", Text: "Text One", Person: &Person{Name: "John"}})
+	// wiseSayings = append(wiseSayings, WiseSaying{ID: "2", Text: "Text Two", Person: &Person{Name: "Steve"}})
+
+	// // Route handles & endpoints
+	// r.HandleFunc("/wise-sayings", getWiseSayings).Methods("GET")
+	// r.HandleFunc("/wise-sayings/{id}", getWiseSaying).Methods("GET")
+	// r.HandleFunc("/wise-sayings", createWiseSaying).Methods("POST")
+	// r.HandleFunc("/wise-sayings/{id}", updateWiseSaying).Methods("PUT")
+	// r.HandleFunc("/wise-sayings/{id}", deleteWiseSaying).Methods("DELETE")
+
+	// // Start server
+	// log.Fatal(http.ListenAndServe(":8000", r))
 }
