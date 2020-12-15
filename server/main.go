@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -23,27 +22,45 @@ type dbInfo struct {
 
 // WiseSaying struct (Model)
 type WiseSaying struct {
-	ID     string  `json:"id"`
-	Text   string  `json:"text"`
-	Person *Person `json:"person"`
+	ID         string `json:"id"`
+	Text       string `json:"text"`
+	PersonName string `json:"person_name"`
 }
 
 // Person struct
 type Person struct {
-	Name string `json:"name"`
-}
-
-// User struct
-type User struct {
+	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 
 // Init wiseSayings var as a slice WiseSaying struct
 var wiseSayings []WiseSaying
 
+var db *sql.DB
+var err error
+
 // Get all wise sayings
 func getWiseSayings(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
+	var wiseSayings []WiseSaying
+
+	result, err := db.Query("SELECT ws.id, ws.text, p.name FROM wise_saying ws INNER JOIN person p on ws.person_id = p.id")
+	if err != nil {
+		panic(err.Error())
+	}
+
+	defer result.Close()
+
+	for result.Next() {
+		var wiseSaying WiseSaying
+		err := result.Scan(&wiseSaying.ID, &wiseSaying.Text, &wiseSaying.PersonName)
+		if err != nil {
+			panic(err.Error())
+		}
+		wiseSayings = append(wiseSayings, wiseSaying)
+	}
+
 	json.NewEncoder(w).Encode(wiseSayings)
 }
 
@@ -100,60 +117,35 @@ func deleteWiseSaying(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(wiseSayings)
 }
 
-func dbQuery(db dbInfo, query string) (count int) {
-	dataSource := db.user + ":" + db.pwd + "@tcp(" + db.url + ")/" + db.database
-	conn, err := sql.Open(db.engine, dataSource)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// conn.SetConnMaxLifetime(time.Minute)
-	// conn.SetMaxOpenConns(10)
-	// conn.SetMaxIdleConns(10)
-
-	defer conn.Close()
-
-	results, err := conn.Query(query)
+// Main function
+func main() {
+	di := dbInfo{"root", "", "127.0.0.1:3306", "mysql", "abelspace"}
+	dataSource := di.user + ":" + di.pwd + "@tcp(" + di.url + ")/" + di.database
+	db, err = sql.Open(di.engine, dataSource)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	for results.Next() {
-		var user User
-
-		err = results.Scan(&user.Name)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		fmt.Println(user.Name)
-	}
-
-	return 0
-}
-
-// Main function
-func main() {
-	// Declear Database
-	var db = dbInfo{"root", "", "127.0.0.1:3306", "mysql", "abelspace"}
-	var query = "SELECT name FROM users"
-	result := dbQuery(db, query)
-	print(result)
+	defer db.Close()
 
 	// // Init router
-	// r := mux.NewRouter()
+	router := mux.NewRouter()
 
 	// // Hardcoded data - @todo: add database
 	// wiseSayings = append(wiseSayings, WiseSaying{ID: "1", Text: "Text One", Person: &Person{Name: "John"}})
 	// wiseSayings = append(wiseSayings, WiseSaying{ID: "2", Text: "Text Two", Person: &Person{Name: "Steve"}})
 
 	// // Route handles & endpoints
-	// r.HandleFunc("/wise-sayings", getWiseSayings).Methods("GET")
-	// r.HandleFunc("/wise-sayings/{id}", getWiseSaying).Methods("GET")
-	// r.HandleFunc("/wise-sayings", createWiseSaying).Methods("POST")
-	// r.HandleFunc("/wise-sayings/{id}", updateWiseSaying).Methods("PUT")
-	// r.HandleFunc("/wise-sayings/{id}", deleteWiseSaying).Methods("DELETE")
+	router.HandleFunc("/wise-sayings", getWiseSayings).Methods("GET")
+	// router.HandleFunc("/wise-sayings", createWiseSaying).Methods("POST")
+	// router.HandleFunc("/wise-sayings/{id}", getWiseSaying).Methods("GET")
+	// router.HandleFunc("/wise-sayings/{id}", updateWiseSaying).Methods("PUT")
+	// router.HandleFunc("/wise-sayings/{id}", deleteWiseSaying).Methods("DELETE")
 
-	// // Start server
-	// log.Fatal(http.ListenAndServe(":8000", r))
+	// Start server
+	log.Fatal(http.ListenAndServe(":8000", router))
+
+	// TODO: 이거 보고 마저 만들기!
+	// https://medium.com/@hugo.bjarred/rest-api-with-golang-mux-mysql-c5915347fa5b
+	// https://www.youtube.com/watch?v=SonwZ6MF5BE
 }
