@@ -67,15 +67,25 @@ func getWiseSayings(w http.ResponseWriter, r *http.Request) {
 // Get single wise sayings
 func getWiseSaying(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	params := mux.Vars(r) // Get params
-	// Loop through wise sayings and find one with the id from the params
-	for _, item := range wiseSayings {
-		if item.ID == params["id"] {
-			json.NewEncoder(w).Encode(item)
-			return
+	params := mux.Vars(r)
+
+	result, err := db.Query("SELECT ws.id, ws.text, p.name FROM wise_saying ws INNER JOIN person p on ws.person_id = p.id WHERE ws.id = ?", params["id"])
+	if err != nil {
+		panic(err.Error())
+	}
+
+	defer result.Close()
+
+	var wiseSaying WiseSaying
+
+	for result.Next() {
+		err := result.Scan(&wiseSaying.ID, &wiseSaying.Text, &wiseSaying.PersonName)
+		if err != nil {
+			panic(err.Error())
 		}
 	}
-	json.NewEncoder(w).Encode(&WiseSaying{})
+
+	json.NewEncoder(w).Encode(wiseSaying)
 }
 
 // Add new wise saying
@@ -119,7 +129,7 @@ func deleteWiseSaying(w http.ResponseWriter, r *http.Request) {
 
 // Main function
 func main() {
-	di := dbInfo{"root", "", "127.0.0.1:3306", "mysql", "abelspace"}
+
 	dataSource := di.user + ":" + di.pwd + "@tcp(" + di.url + ")/" + di.database
 	db, err = sql.Open(di.engine, dataSource)
 	if err != nil {
@@ -138,7 +148,7 @@ func main() {
 	// // Route handles & endpoints
 	router.HandleFunc("/wise-sayings", getWiseSayings).Methods("GET")
 	// router.HandleFunc("/wise-sayings", createWiseSaying).Methods("POST")
-	// router.HandleFunc("/wise-sayings/{id}", getWiseSaying).Methods("GET")
+	router.HandleFunc("/wise-sayings/{id}", getWiseSaying).Methods("GET")
 	// router.HandleFunc("/wise-sayings/{id}", updateWiseSaying).Methods("PUT")
 	// router.HandleFunc("/wise-sayings/{id}", deleteWiseSaying).Methods("DELETE")
 
